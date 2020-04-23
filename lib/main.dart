@@ -1,12 +1,21 @@
-import 'package:firstapp/home/components/header.dart';
-import 'package:firstapp/home/components/separator.dart';
-import 'package:firstapp/home/components/warning.dart';
+import 'dart:convert';
+
+import 'package:firstapp/home/header.dart';
+import 'package:firstapp/home/no-plants.dart';
+import 'package:firstapp/home/plants.dart';
+import 'package:firstapp/widgets/separator.dart';
+import 'package:firstapp/home/warning.dart';
+import 'package:firstapp/models/plant_list.dart';
+import 'package:firstapp/widgets/loading-indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
+
+import 'home/main.dart';
+import 'models/plant.dart';
 
 void main() => runApp(MyApp());
 
@@ -15,7 +24,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
         theme: ThemeData(
-          fontFamily: 'Montserrat',
+            fontFamily: 'Montserrat',
+            primarySwatch: Colors.green
         ),
         debugShowCheckedModeBanner: false,
         home: SampleAppPage()
@@ -31,110 +41,73 @@ class SampleAppPage extends StatefulWidget {
 }
 
 class _SampleAppPageState extends State<SampleAppPage> {
+  Future<PlantList> plantList;
+  Future<PlantList> attentionPlantList;
+
+  @override
+  void initState() {
+    super.initState();
+    plantList = fetchAllPlants();
+    attentionPlantList = fetchAttentionPlants();
+  }
+
   @override
   Widget build(BuildContext context) {
+    plantList = fetchAllPlants();
+    attentionPlantList = fetchAttentionPlants();
+
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: <Widget>[
-              HomeHeader(),
-              Separator(),
-              WarningBar(),
-              Container(
-                  height: 140.0,
-                  child: ListView.separated(
-                    separatorBuilder: (context, itemIndex) {
-                      return SizedBox(width: 15);
-                    },
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: 20,
-                    itemBuilder: (context, index) => ClipRRect(
-                      borderRadius: BorderRadius.circular(20.0),
-                      child: Image.asset(
-                        "resources/images/plant1.jpg",
-                        width: 90,
-                        height: 130,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  )
-              ),
-              Separator(),
-              ListView.separated(
-                  shrinkWrap: true,
-                  primary: false,
-                  separatorBuilder: (context, itemIndex) {
-                    return SizedBox(height: 20);
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              children: <Widget>[
+                HomeHeader(),
+                FutureBuilder<PlantList>(
+                  future: attentionPlantList,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data.plants.isNotEmpty) {
+                      return AttentionWidget(plantList: snapshot.data);
+                    }
+                    return Container();
                   },
-                  padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  scrollDirection: Axis.vertical,
-                  itemCount: 20,
-                  itemBuilder: (context, index) => Container(
-                    child: Row(
-                      children: <Widget>[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20.0),
-                          child: Image.asset(
-                            "resources/images/plant1.jpg",
-                            width: 90,
-                            height: 90,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(
-                                  "Epipremnum",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14
-                                  ),
-                                ),
-                                Text(
-                                  "Morbi ultricies magna egestas, efficitur nulla sit amet, consectetur nibh.",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 10
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  )
-              )
-            ],
+                ),
+                FutureBuilder<PlantList>(
+                  future: plantList,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      if (snapshot.data.plants.isNotEmpty) {
+                        return PlantListWidget(plantList: snapshot.data);
+                      } else {
+                        return NoPlantsWidget();
+                      }
+                    }
+                    return LoadingIndicator();
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      )
+        )
     );
   }
 
-  _getSecondListData() {
-    List<Widget> widgets = [];
-    for (int i = 0; i < 20; i++) {
-      widgets.add(
-          Padding(
-              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20.0),
-                child: Image.asset(
-                  "resources/images/plant1.jpg",
-                  height: 90,
-                  fit: BoxFit.cover,
-                ),
-              )
-          )
-      );
+  Future<PlantList> fetchAllPlants() async {
+    final response = await http.get('https://plants-care-app.herokuapp.com/plants');
+
+    if (response.statusCode == 200) {
+      return PlantList.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load album');
     }
-    return widgets;
+  }
+
+  Future<PlantList> fetchAttentionPlants() async {
+    final response = await http.get('https://plants-care-app.herokuapp.com/plants/attention');
+
+    if (response.statusCode == 200) {
+      return PlantList.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load plants attention');
+    }
   }
 }
