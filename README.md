@@ -6,4 +6,4 @@ I am creating this application just to learn Flutter
 
 Home             |  Plant
 :-------------------------:|:-------------------------:
-![Home](https://i.imgur.com/DKnSy0C.png)  |  ![Plant](https://i.imgur.com/0vGoGRE.png)
+![Home](https://i.imgur.com/DKnSy0C.png)  |  ![Plant](https://i.imgur.com/uR2sCv1.png)
