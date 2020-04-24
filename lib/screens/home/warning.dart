@@ -28,7 +28,7 @@ class _WarningBarState extends State<WarningBar> {
               ),
               Expanded(
                   child: Text(
-                    "Your plants needs some attention",
+                    "Your plants need some attention",
                     style: TextStyle(
                       color: Color.fromRGBO(34, 34, 34, 1),
                       fontWeight: FontWeight.w600,
